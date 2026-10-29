@@ -179,7 +179,7 @@ function mpConnect(){
     else if(!script.dataset.waiting){script.dataset.waiting='1';script.addEventListener('load',()=>{script.dataset.loaded='1';mpConnect()},{once:true});script.addEventListener('error',()=>{$('mpError').textContent='Multiplayer library failed to load. Solo racing still works; check internet and retry.'},{once:true})}
     return null;
   }
-  mpSocket=io(window.location.origin,{transports:['websocket','polling']});
+  mpSocket=io('https://formula-2.onrender.com',{transports:['websocket','polling']});
   mpSocket.on('connect',()=>{$('mpError').textContent='';});
   mpSocket.on('connect_error',()=>{mpSocket.disconnect();mpSocket=null;$('mpError').textContent=MP_UNAVAILABLE;});
   mpSocket.on('room_created',d=>{mpCode=d.code;mpHost=true;mpActive=true;mpRoster=d.players||[];mpSeed=d.seed;mpShowLobby()});
@@ -203,9 +203,42 @@ function mpOpen(){
 }
 $('mpOpen').onclick=mpOpen;
 $('mpClose').onclick=()=>{$('mp').hidden=true};
-$('mpCreate').onclick=()=>{const s=mpConnect();if(!s){mpUnavailable();return}if(!s.connected){mpUnavailable();return}s.emit('create_room',{name:mpName()})};
+// Wait for the Socket.IO script to load and the Render connection to finish.
+// Previously the first click could fail immediately because mpConnect() returned
+// null while the CDN script was still loading.
+function mpWaitForSocket(timeout=15000){
+ return new Promise((resolve,reject)=>{
+  const deadline=Date.now()+timeout;
+  const seek=()=>{
+   const s=mpConnect();
+   if(s){
+    if(s.connected){resolve(s);return}
+    let settled=false;
+    const finish=(err)=>{if(settled)return;settled=true;clearTimeout(timer);s.off('connect',onConnect);s.off('connect_error',onError);err?reject(err):resolve(s)};
+    const onConnect=()=>finish(null),onError=()=>finish(new Error('connection failed'));
+    const timer=setTimeout(()=>finish(new Error('connection timeout')),Math.max(1,deadline-Date.now()));
+    s.once('connect',onConnect);s.once('connect_error',onError);
+    return;
+   }
+   if(Date.now()>=deadline){reject(new Error('socket library timeout'));return}
+   setTimeout(seek,100);
+  };
+  seek();
+ });
+}
+$('mpCreate').onclick=async()=>{
+ $('mpError').textContent='Connecting…';
+ try{const s=await mpWaitForSocket();s.emit('create_room',{name:mpName()})}
+ catch(e){mpUnavailable()}
+};
 $('mpJoinToggle').onclick=()=>{$('mpJoinBox').hidden=!$('mpJoinBox').hidden;$('mpLobby').hidden=true};
-$('mpJoin').onclick=()=>{const code=$('mpCode').value.trim().toUpperCase();if(code.length<4){$('mpError').textContent='Enter the full room code.';return}const s=mpConnect();if(!s||!s.connected){mpUnavailable();return}s.emit('join_room',{code,name:mpName()})};
+$('mpJoin').onclick=async()=>{
+ const code=$('mpCode').value.trim().toUpperCase();
+ if(code.length<4){$('mpError').textContent='Enter the full room code.';return}
+ $('mpError').textContent='Connecting…';
+ try{const s=await mpWaitForSocket();s.emit('join_room',{code,name:mpName()})}
+ catch(e){mpUnavailable()}
+};
 $('mpStart').onclick=()=>{if(!mpHost||!mpSocket)return;mpSeed=(Math.random()*2147483646|0)+1;LAPS=3;mpSocket.emit('start_race',{code:mpCode,seed:mpSeed,laps:LAPS});mpActive=true;$('mp').hidden=true;start()};
 $('mpCopy').onclick=()=>{const txt=`Join my Apex Rush GP grid! Code: ${mpCode}`;if(navigator.clipboard?.writeText)navigator.clipboard.writeText(txt).then(()=>{$('mpError').textContent='Invite copied — send your friends the game URL and room code.'}).catch(()=>{$('mpError').textContent=txt});else $('mpError').textContent=txt};
 function mpSendState(t){
