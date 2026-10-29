@@ -1,6 +1,6 @@
 
 const $=id=>document.getElementById(id),tg=window.Telegram&&Telegram.WebApp,BOT='https://t.me/YOUR_BOT/YOUR_APP'; // <-- set your bot's Mini App link
-let save={xp:0,races:0,best:0,wins:0};try{Object.assign(save,JSON.parse(localStorage.getItem('apex')||'{}'))}catch(e){}
+let save={xp:0,races:0,best:0,wins:0,credits:250,ownedCars:['starter'],selectedCar:'starter',controls:{size:100,bottom:9,layout:'left'}};try{Object.assign(save,JSON.parse(localStorage.getItem('apex')||'{}'))}catch(e){};save.ownedCars=Array.isArray(save.ownedCars)?save.ownedCars:['starter'];if(!save.ownedCars.includes('starter'))save.ownedCars.unshift('starter');save.credits=Number.isFinite(+save.credits)?+save.credits:250;save.controls=Object.assign({size:100,bottom:9,layout:'left'},save.controls||{});
 const store=()=>{try{localStorage.setItem('apex',JSON.stringify(save))}catch(e){}};
 if(tg){try{tg.ready();tg.expand();tg.disableVerticalSwipes&&tg.disableVerticalSwipes();tg.lockOrientation&&tg.lockOrientation();tg.setHeaderColor&&tg.setHeaderColor('#07070d');tg.setBackgroundColor&&tg.setBackgroundColor('#07070d')}catch(e){}}
 let hl=0;const hap=t=>{const n=performance.now();if(n-hl<160)return;hl=n;try{tg.HapticFeedback.impactOccurred(t||'light')}catch(e){}};
@@ -10,6 +10,8 @@ const clamp=(v,a,b)=>Math.max(a,Math.min(b,v)),fmt=t=>Math.floor(t/60)+':'+(t%60
 const SEG=200,RW=900,D=.84,CAMH=1000,PD=900,DRAW=110,MAXV=11000,HOR=.34;
 const COMP=[{n:'S',c:'#ff2a3d',sp:1.03,g:1.1,wr:1.6},{n:'M',c:'#ffd21f',sp:1,g:1,wr:1},{n:'H',c:'#f2f2f2',sp:.975,g:.92,wr:.6}];
 const BC=['#ff1e3c','#19e3ff','#ffd21f','#b24bff','#37ff8b'];
+const CARS=[{id:'starter',name:'ROOKIE',price:0,color:'#ff1e3c',speed:1,grip:1,accel:1,boost:1,desc:'Balanced entry-level racer'},{id:'vortex',name:'VORTEX GT',price:400,color:'#19e3ff',speed:1.07,grip:.96,accel:1.08,boost:1.02,desc:'Fast on straights · quick launch'},{id:'scorpion',name:'SCORPION R',price:850,color:'#ffd21f',speed:1.025,grip:1.19,accel:.98,boost:1.04,desc:'Maximum cornering grip'},{id:'phantom',name:'PHANTOM X',price:1500,color:'#b24bff',speed:1.12,grip:1.01,accel:1.04,boost:1.13,desc:'Elite top speed · powerful boost'},{id:'apex',name:'APEX PRO',price:2600,color:'#37ff8b',speed:1.145,grip:1.14,accel:1.12,boost:1.10,desc:'Premium all-round performance'}];
+const DIFFS={easy:{label:'EASY',ai:.86},normal:{label:'NORMAL',ai:1.02},hard:{label:'HARD',ai:1.15},pro:{label:'PRO',ai:1.25}};let difficulty='hard';
 let segs=[],N=1,L=1,LAPS=3,seed=1,P,cars=[],state='menu',lights=0,goT=6,pitT=0,shake=0,sel=1,pitSel=-1,bx=0,parts=[],lastPos=8,ch=null,lapStart=0,bestL=0,raceT=0,keys={},msgT=0,res=null,hudT=0,W=1,H=1,dpr=1,demo=0;
 let mpSocket=null,mpCode='',mpHost=false,mpActive=false,mpSeed=0,mpRoster=[],mpLastSend=0,mpStartPending=false;
 const sp0=(tg&&tg.initDataUnsafe&&tg.initDataUnsafe.start_param)||location.hash.slice(1),q0=sp0.split('-');
@@ -22,17 +24,17 @@ function build(sd){const r=rng(sd);segs=[];
  add(100,0,1);
  for(let j=0;j<34;j++){if(r()<.3)add(45+r()*55|0,0,1);else{const len=26+r()*44|0;add(len,(r()<.5?-1:1)*(.9+r()*2.3)*(len<36?1.35:1))}}
  add(70,0,0);N=segs.length;L=N*SEG}
-function init(){build(seed);const r=rng(seed+99),lv=Math.floor(Math.sqrt(save.xp/100));
+function init(){build(seed);const r=rng(seed+99),lv=Math.floor(Math.sqrt(save.xp/100)),carDef=CARS.find(c=>c.id===save.selectedCar)||CARS[0];
  const nm=['NOV','KES','BLT','VEG','ORI','ZEP','ROG'],cl=['#ff7a00','#19e3ff','#37ff8b','#ffd21f','#b24bff','#f2f2f2','#ff4fa3'];cars=[];let ai=0;
  for(let s=0;s<8;s++){const b={z:-(s+1)*260,x:s%2?.4:-.4,v:0,w:0,cp:1};
-  if(s==5){P=Object.assign(b,{n:NAME,c:'#ff1e3c',e:.5,sv:0,lap:1,cp:sel,dr:false});cars.push(P)}
-  else{cars.push(Object.assign(b,{n:nm[ai],c:cl[ai],sk:.8+r()*.1+Math.min(.04,lv*.004),tx:b.x,t:0,fin:0}));ai++}}
+  if(s==5){P=Object.assign(b,{n:NAME,c:carDef.color,e:.5,sv:0,lap:1,cp:sel,dr:false,carId:carDef.id,carSp:carDef.speed,carGrip:carDef.grip});cars.push(P)}
+  else{cars.push(Object.assign(b,{n:nm[ai],c:cl[ai],sk:(.86+r()*.12+Math.min(.06,lv*.006))*DIFFS[difficulty].ai,tx:b.x,t:0,fin:0}));ai++}}
  raceT=0;lapStart=0;bestL=0;lastPos=6;bx=0;parts=[];goT=5*.85+.6+Math.random()*.9}
 function msg(t,ms){const m=$('msg');m.textContent=t;m.classList.remove('s');void m.offsetWidth;m.classList.add('s');clearTimeout(msgT);msgT=setTimeout(()=>m.classList.remove('s'),ms||1000)}
 function spark(x,y,c,n){for(let i=0;i<n;i++)parts.push({x,y,vx:(Math.random()-.5)*260,vy:-Math.random()*220,l:.5,c})}
 function chips(el,opts,get,set){el.innerHTML='';opts.forEach(o=>{const b=document.createElement('button');b.className='chip'+(get()==o.v?' on':'');b.textContent=o.t;b.style.setProperty('--c',o.c||'#fff');b.onclick=()=>{set(o.v);chips(el,opts,get,set)};el.appendChild(b)})}
 function menu(){state='menu';mpActive=false;const lv=Math.floor(Math.sqrt(save.xp/100))+1;
- $('st').textContent=`LEVEL ${lv} · BEST LAP ${save.best?fmt3(save.best):'--'} · WINS ${save.wins}`;
+ $('st').textContent=`LEVEL ${lv} · BEST LAP ${save.best?fmt3(save.best):'--'} · WINS ${save.wins} · ${save.credits} CR`; $('creditsTop').textContent=save.credits;renderGarage();applyControls();
  $('menu').hidden=false;$('res').hidden=true;$('mp').hidden=true;$('hud').hidden=$('ctl').hidden=$('lights').hidden=true;$('miniWrap').hidden=true;
  $('chb').hidden=$('free').hidden=!ch;$('ll').hidden=$('cl').hidden=!!ch;
  if(ch)$('chb').innerHTML=`⚔ <b>${ch.n}</b> challenges you!<br>Beat <b>${fmt3(ch.ms)}</b> over ${ch.laps} laps on their track`;
@@ -41,7 +43,7 @@ function menu(){state='menu';mpActive=false;const lv=Math.floor(Math.sqrt(save.x
  seed=Math.random()*1e6|0;init();P.x=0;P.z=0}
 let ac,osc,gn;function sfx(){if(ac)return;try{const AudioCtor=window.AudioContext||window.webkitAudioContext;if(!AudioCtor)return;ac=new AudioCtor();osc=ac.createOscillator();osc.type='sawtooth';const f=ac.createBiquadFilter();f.type='lowpass';f.frequency.value=800;gn=ac.createGain();gn.gain.value=0;osc.connect(f);f.connect(gn);gn.connect(ac.destination);osc.start()}catch(e){ac=null}}
 function start(){sfx();if(ch){seed=ch.seed;LAPS=ch.laps}else if(mpActive&&mpSeed){seed=mpSeed}else seed=Math.random()*1e6|0;init();state='grid';lights=0;pitSel=-1;
- $('menu').hidden=$('res').hidden=true;$('hud').hidden=$('ctl').hidden=$('lights').hidden=false;$('miniWrap').hidden=false;$('mpStatus').textContent=mpActive?'ONLINE GRID':'SOLO SESSION';pitUI();tyreUI();msg('LIGHTS OUT SOON',1200)}
+ $('menu').hidden=$('res').hidden=$('settings').hidden=$('garage').hidden=true;$('hud').hidden=$('ctl').hidden=$('lights').hidden=false;$('miniWrap').hidden=false;$('mpStatus').textContent=mpActive?'ONLINE GRID':'SOLO SESSION';pitUI();tyreUI();msg('LIGHTS OUT SOON',1200)}
 function pitUI(){$('pit').textContent=pitSel<0?'PIT OFF':'PIT → '+COMP[pitSel].n;$('pit').style.borderColor=pitSel<0?'':COMP[pitSel].c}
 function tyreUI(){const c=COMP[P.cp];$('tyre').innerHTML=`<span style="color:${c.c};font-size:15px">●</span>${c.n}<span class="bar"><u id="wr"></u></span>`}
 $('pit').onclick=()=>{pitSel=pitSel>=2?-1:pitSel+1;pitUI();hap('medium')};
@@ -68,20 +70,20 @@ async function share(){
  }
 }
 function finish(){state='fin';const pos=cars.filter(c=>c.z>P.z).length+1;res={pos,t:raceT,best:bestL};if(mpActive&&mpSocket)mpSocket.emit('race_state',{code:mpCode,name:mpName(),progress:Math.min(1,P.z/(LAPS*L)),time:raceT,position:pos,finished:true,lap:P.lap,seed:seed});
- const xp=Math.max(0,9-pos)*25+(pos==1?100:0);save.xp+=xp;save.races++;if(pos==1)save.wins++;store();res.xp=xp;
+ const xp=Math.max(0,9-pos)*25+(pos==1?100:0);const credits=100+(8-pos)*45+(pos===1?150:0)+Math.max(0,LAPS-2)*25;save.xp+=xp;save.credits+=credits;save.races++;if(pos==1)save.wins++;store();res.xp=xp;res.credits=credits;
  msg(pos==1?'VICTORY!':'FINISH P'+pos,1800);hap('heavy');setTimeout(showRes,1800)}
 function showRes(){$('res').hidden=false;$('hud').hidden=$('ctl').hidden=true;$('miniWrap').hidden=true;$('rp').textContent='P'+res.pos;
  let cm='';if(ch&&seed==ch.seed){const d=res.t-ch.ms;cm=d<0?`<br>🏆 You beat ${ch.n} by ${(-d).toFixed(3)}s!`:`<br>😤 ${ch.n} wins by ${d.toFixed(3)}s`}
- $('rt').innerHTML=`TIME ${fmt3(res.t)} · BEST LAP ${res.best?fmt3(res.best):'--'}<br>+${res.xp} XP${cm}`;
+ $('rt').innerHTML=`TIME ${fmt3(res.t)} · BEST LAP ${res.best?fmt3(res.best):'--'}<br>+${res.xp} XP · +${res.credits} CR${cm}`;
  $('rs').innerHTML=[...cars].sort((a,b)=>b.z-a.z).map((c,i)=>`<div class="${c===P?'me':''}"><span>P${i+1} ${c.n}</span><span style="color:${c.c}">■</span></div>`).join('');
  $('shr').hidden=false;if(ch&&res.pos>0)$('again').textContent='RETRY CHALLENGE'}
-function player(dt){const sg=segs[Math.floor(mod(P.z)/SEG)%N],cp=COMP[P.cp],pct=P.v/MAXV,racing=state=='race';
- const dir=racing?(keys.r?1:0)-(keys.l?1:0):0,grip=cp.g*(1-.4*P.w),dxs=dt*2.5*(.35+.65*pct);
+function player(dt){const sg=segs[Math.floor(mod(P.z)/SEG)%N],cp=COMP[P.cp],pct=P.v/MAXV,racing=state=='race',carDef=CARS.find(c=>c.id===P.carId)||CARS[0];
+ const dir=racing?(keys.r?1:0)-(keys.l?1:0):0,grip=cp.g*carDef.grip*(1-.4*P.w),dxs=dt*2.5*(.35+.65*pct);
  P.sv+=(dir-P.sv)*Math.min(1,dt*10);P.x+=dir*dxs*grip*.95;P.x-=dxs*pct*sg.c*.42/grip;
  if(Math.abs(P.x)>1.75){P.x=Math.sign(P.x)*1.75;P.v*=1-3*dt;shake=.25;hap('rigid');spark(W/2,H*.68,'#ffb347',2)}
  const off=Math.abs(P.x)>1.08,boost=racing&&keys.b&&(sg.d||P.e>.02);P.boost=boost;P.inDRS=racing&&!!sg.d;
- let top=MAXV*cp.sp*(1-.12*P.w);if(boost)top*=sg.d?1.1:1.07;if(P.dr)top*=1.04;if(off)top*=.42;
- if(racing){if(keys.k)P.v=Math.max(0,P.v-17000*dt);else if(P.v<top)P.v=Math.min(top,P.v+4600*dt*(1.2-P.v/top));else P.v=Math.max(top,P.v-7000*dt)}
+ let top=MAXV*cp.sp*carDef.speed*(1-.12*P.w);if(boost)top*=1+(sg.d?.10:.07)*carDef.boost;if(P.dr)top*=1.04;if(off)top*=.42;
+ if(racing){if(keys.k)P.v=Math.max(0,P.v-17000*dt);else if(P.v<top)P.v=Math.min(top, P.v+4600*carDef.accel*dt*(1.2-P.v/top));else P.v=Math.max(top,P.v-7000*dt)}
  else if(state=='fin')P.v=Math.max(MAXV*.25,P.v-2500*dt);
  else if(state=='pit'){P.v=Math.max(0,P.v-24000*dt);if(P.v==0){pitT-=dt;if(pitT<=0){P.cp=pitSel;P.w=0;pitSel=-1;state='race';pitUI();tyreUI();msg('GO GO GO!',900)}}}
  P.e=clamp(P.e+dt*(boost&&!sg.d?-.3:.045+(keys.k&&racing?.35:0)+(P.dr?.08:0)),0,1);
@@ -146,11 +148,26 @@ function draw(){const HY=H*HOR,K=CAMH*H*.375;ctx.save();if(shake>0)ctx.translate
  if(P.boost||P.v>MAXV*1.02){ctx.strokeStyle='rgba(255,255,255,.28)';ctx.lineWidth=2;ctx.beginPath();for(let i=0;i<18;i++){const a=Math.random()*6.283,r1=W*(.3+Math.random()*.2),r2=r1+W*(.15+Math.random()*.2);ctx.moveTo(W/2+Math.cos(a)*r1,H*.5+Math.sin(a)*r1*1.1);ctx.lineTo(W/2+Math.cos(a)*r2,H*.5+Math.sin(a)*r2*1.1)}ctx.stroke()}
  const ps=D/PD;car(W/2+P.sv*8,HY+ps*K,ps*RW*.4*W/2,P.c,P.sv,P.boost,COMP[P.cp].c);
  for(let i=parts.length-1;i>=0;i--){const p=parts[i];p.l-=.016;if(p.l<=0){parts.splice(i,1);continue}p.x+=p.vx*.016;p.y+=p.vy*.016;p.vy+=500*.016;ctx.globalAlpha=p.l*2;ctx.fillStyle=p.c;ctx.fillRect(p.x,p.y,3,3)}ctx.globalAlpha=1;ctx.restore()}
+// Mobile control customization is stored locally with the player's save.
+function applyControls(){const c=save.controls||{size:100,bottom:9,layout:'left'};$('ctl').style.setProperty('--ctl-bottom',`${c.bottom}vh`);$('ctl').style.setProperty('--ctl-scale',`${c.size/100}`);$('ctl').classList.toggle('layout-right',c.layout==='right');$('sizeRange').value=c.size;$('heightRange').value=c.bottom;$('sizeVal').textContent=c.size+'%';$('heightVal').textContent=c.bottom+'vh';$('layoutLeft').classList.toggle('on',c.layout!=='right');$('layoutRight').classList.toggle('on',c.layout==='right')}
+function openSettings(){ $('settings').hidden=false;$('menu').hidden=true;applyControls() }
+$('settingsOpen').onclick=openSettings;$('settingsClose').onclick=()=>{ $('settings').hidden=true;$('menu').hidden=false;applyControls() };
+$('sizeRange').addEventListener('input',e=>{save.controls.size=+e.target.value;store();applyControls()});$('heightRange').addEventListener('input',e=>{save.controls.bottom=+e.target.value;store();applyControls()});
+$('layoutLeft').onclick=()=>{save.controls.layout='left';store();applyControls()};$('layoutRight').onclick=()=>{save.controls.layout='right';store();applyControls()};
+$('settingsSave').onclick=()=>{store();$('settings').hidden=true;$('menu').hidden=false;applyControls();msg('CONTROLS SAVED',900)};
+$('settingsReset').onclick=()=>{save.controls={size:100,bottom:9,layout:'left'};store();applyControls()};
+function renderGarage(){const list=$('carList');if(!list)return;$('creditsTop').textContent=save.credits;$('creditsGarage').textContent=save.credits;list.innerHTML='';CARS.forEach(c=>{const owned=save.ownedCars.includes(c.id),selected=save.selectedCar===c.id,card=document.createElement('div');card.className='carCard';card.innerHTML=`<div class="carSwatch" style="--car:${c.color}"></div><div class="carInfo"><b>${c.name}${selected?' · SELECTED':''}</b><small>${c.desc}</small><small>TOP SPEED ${Math.round(c.speed*100)} · GRIP ${Math.round(c.grip*100)} · ACCEL ${Math.round(c.accel*100)} · BOOST ${Math.round(c.boost*100)}</small><small>${owned?'OWNED':c.price+' CREDITS'}</small></div><button>${selected?'SELECTED':owned?'SELECT':`BUY ${c.price}`}</button>`;const btn=card.querySelector('button');btn.disabled=selected||(!owned&&save.credits<c.price);btn.onclick=()=>{if(!owned){save.credits-=c.price;save.ownedCars.push(c.id)}save.selectedCar=c.id;store();renderGarage();menu();$('garage').hidden=false;$('menu').hidden=true;};list.appendChild(card)})}
+$('garageOpen').onclick=()=>{renderGarage();$('garage').hidden=false;$('menu').hidden=true};$('garageClose').onclick=()=>{ $('garage').hidden=true;$('menu').hidden=false;menu()};
+// Difficulty controls: hard is the default; Pro is deliberately demanding.
+chips($('difficultyChips'),Object.entries(DIFFS).map(([v,d])=>({t:d.label,v,c:v==='pro'?'#ff1e3c':'#19e3ff'})),()=>difficulty,v=>difficulty=v);
+applyControls();
 [['bl','l'],['br','r'],['bt','b'],['bb','k']].forEach(([id,k])=>{const e=$(id),on=v=>ev=>{ev.preventDefault();keys[k]=v;e.classList.toggle('dn',!!v)};e.addEventListener('pointerdown',on(1));['pointerup','pointercancel','pointerleave'].forEach(t=>e.addEventListener(t,on(0)))});
 const kmap=(e,v)=>{const k=e.key;if(k=='ArrowLeft'||k=='a')keys.l=v;if(k=='ArrowRight'||k=='d')keys.r=v;if(k==' '||k=='ArrowUp'||k=='w')keys.b=v;if(k=='ArrowDown'||k=='s')keys.k=v};
 addEventListener('keydown',e=>kmap(e,1));addEventListener('keyup',e=>kmap(e,0));
 
 // Circuit mini-map and room-based live multiplayer.
+const MP_UNAVAILABLE='Multiplayer isn’t available right now. Please try again later.';
+function mpUnavailable(){ $('mpError').textContent=MP_UNAVAILABLE; }
 function mpName(){return (($('mpName').value||NAME||'RACER').replace(/[^A-Za-z0-9 _-]/g,'').trim().slice(0,14)||'RACER')}
 function mpConnect(){
   if(mpSocket)return mpSocket;
@@ -162,9 +179,9 @@ function mpConnect(){
     else if(!script.dataset.waiting){script.dataset.waiting='1';script.addEventListener('load',()=>{script.dataset.loaded='1';mpConnect()},{once:true});script.addEventListener('error',()=>{$('mpError').textContent='Multiplayer library failed to load. Solo racing still works; check internet and retry.'},{once:true})}
     return null;
   }
-  mpSocket=io({transports:['websocket','polling']});
-  mpSocket.on('connect',()=>{$('mpError').textContent='Connected to race control.'});
-  mpSocket.on('connect_error',()=>{$('mpError').textContent='Could not reach multiplayer server. Run/deploy server.py first.'});
+  mpSocket=io(window.location.origin,{transports:['websocket','polling']});
+  mpSocket.on('connect',()=>{$('mpError').textContent='';});
+  mpSocket.on('connect_error',()=>{mpSocket.disconnect();mpSocket=null;$('mpError').textContent=MP_UNAVAILABLE;});
   mpSocket.on('room_created',d=>{mpCode=d.code;mpHost=true;mpActive=true;mpRoster=d.players||[];mpSeed=d.seed;mpShowLobby()});
   mpSocket.on('room_joined',d=>{mpCode=d.code;mpHost=false;mpActive=true;mpRoster=d.players||[];mpSeed=d.seed;mpShowLobby()});
   mpSocket.on('room_update',d=>{if(d.code===mpCode){mpRoster=d.players||[];mpRenderPlayers()}});
@@ -186,9 +203,9 @@ function mpOpen(){
 }
 $('mpOpen').onclick=mpOpen;
 $('mpClose').onclick=()=>{$('mp').hidden=true};
-$('mpCreate').onclick=()=>{const s=mpConnect();if(!s)return;s.emit('create_room',{name:mpName()})};
+$('mpCreate').onclick=()=>{const s=mpConnect();if(!s){mpUnavailable();return}if(!s.connected){mpUnavailable();return}s.emit('create_room',{name:mpName()})};
 $('mpJoinToggle').onclick=()=>{$('mpJoinBox').hidden=!$('mpJoinBox').hidden;$('mpLobby').hidden=true};
-$('mpJoin').onclick=()=>{const code=$('mpCode').value.trim().toUpperCase();if(code.length<4){$('mpError').textContent='Enter the full room code.';return}const s=mpConnect();s&&s.emit('join_room',{code,name:mpName()})};
+$('mpJoin').onclick=()=>{const code=$('mpCode').value.trim().toUpperCase();if(code.length<4){$('mpError').textContent='Enter the full room code.';return}const s=mpConnect();if(!s||!s.connected){mpUnavailable();return}s.emit('join_room',{code,name:mpName()})};
 $('mpStart').onclick=()=>{if(!mpHost||!mpSocket)return;mpSeed=(Math.random()*2147483646|0)+1;LAPS=3;mpSocket.emit('start_race',{code:mpCode,seed:mpSeed,laps:LAPS});mpActive=true;$('mp').hidden=true;start()};
 $('mpCopy').onclick=()=>{const txt=`Join my Apex Rush GP grid! Code: ${mpCode}`;if(navigator.clipboard?.writeText)navigator.clipboard.writeText(txt).then(()=>{$('mpError').textContent='Invite copied — send your friends the game URL and room code.'}).catch(()=>{$('mpError').textContent=txt});else $('mpError').textContent=txt};
 function mpSendState(t){
