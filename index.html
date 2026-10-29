@@ -17,8 +17,17 @@
 <div id="chb" class="ban" hidden></div>
 <div class="lbl">STARTING TYRE</div><div class="chips" id="ct"></div>
 <div class="lbl" id="ll">RACE LENGTH</div><div class="chips" id="cl"></div>
-<button class="big" id="go">START ENGINES</button><button class="big b2" id="mpOpen">⚡ RACE WITH FRIENDS</button><button class="lnk" id="free" hidden>skip challenge · free race</button>
-<div class="stat" id="st"></div></div>
+<div class="lbl">AI DIFFICULTY</div><div class="chips" id="difficultyChips"></div><button class="big" id="go">START ENGINES</button><button class="big b2" id="mpOpen">⚡ RACE WITH FRIENDS</button><button class="lnk" id="free" hidden>skip challenge · free race</button>
+<div class="stat" id="st"></div>
+<div class="menuActions"><button class="big b2" id="garageOpen">GARAGE · <span id="creditsTop">0</span> CR</button><button class="lnk" id="settingsOpen">⚙ BUTTON SETTINGS</button></div></div>
+
+<div id="settings" class="ov panelOv" hidden><button class="lnk backBtn" id="settingsClose">← BACK</button><h1 class="panelTitle">CONTROLS</h1><div class="sub">CUSTOMIZE YOUR MOBILE LAYOUT</div>
+<label class="settingLine">BUTTON SIZE <b id="sizeVal">100%</b><input id="sizeRange" type="range" min="75" max="125" step="5" value="100"></label>
+<label class="settingLine">BUTTON HEIGHT <b id="heightVal">9vh</b><input id="heightRange" type="range" min="2" max="24" step="1" value="9"></label>
+<div class="settingLine">CONTROL SIDES <div class="chips"><button class="chip on" id="layoutLeft">STEER LEFT</button><button class="chip" id="layoutRight">STEER RIGHT</button></div></div>
+<button class="big" id="settingsSave">SAVE CONTROLS</button><button class="lnk" id="settingsReset">RESET DEFAULTS</button></div>
+
+<div id="garage" class="ov panelOv" hidden><button class="lnk backBtn" id="garageClose">← BACK</button><h1 class="panelTitle">GARAGE</h1><div class="sub">BUY YOUR NEXT RACE CAR</div><div class="wallet">CREDITS <b id="creditsGarage">0</b></div><div id="carList"></div><div class="stat">Credits are earned by finishing races. Your collection is saved on this device.</div></div>
 
 <div id="mp" class="ov" hidden>
   <button class="lnk" id="mpClose" style="position:absolute;top:22px;left:20px">← BACK</button>
