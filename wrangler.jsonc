@@ -1,2 +1,5 @@
-index.html
-wrangler.jsonc
+{
+  "name": "formula-2",
+  "compatibility_date": "2026-10-01",
+  "assets": { "directory": "./public" }
+}
