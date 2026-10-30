@@ -76,7 +76,7 @@ input{font-family:var(--f);font-size:18px;text-align:center;text-transform:upper
 <div id="ed" hidden><div class="sub">DRAG BUTTONS ANYWHERE</div><div class="chips" id="e1"></div><div class="chips" id="e2"></div><div class="chips"><button class="chip" id="er">RESET</button><button class="chip on" id="ed2" style="--c:#37ff8b">DONE</button></div></div>
 </div>
 <script>
-const $=id=>document.getElementById(id),tg=window.Telegram&&Telegram.WebApp,BOT='https://t.me/YOUR_BOT/YOUR_APP',API=''; // BOT: your Mini App link · API: your server.js URL (Stars shop + live rooms)
+const $=id=>document.getElementById(id),tg=window.Telegram&&Telegram.WebApp,BOT='https://t.me/Formula2game_bot/Formula2',API='https://formula-2-1.onrender.com/'; // BOT: your Mini App link · API: your server.js URL (Stars shop + live rooms)
 let save={xp:0,races:0,best:0,wins:0,pts:0,car:'rk',own:['rk'],trk:0,ui:null};try{Object.assign(save,JSON.parse(localStorage.getItem('apex')||'{}'))}catch(e){}
 const store=()=>{try{localStorage.setItem('apex',JSON.stringify(save))}catch(e){}};
 if(tg){try{tg.ready();tg.expand();tg.disableVerticalSwipes&&tg.disableVerticalSwipes();tg.lockOrientation&&tg.lockOrientation();tg.setHeaderColor&&tg.setHeaderColor('#07070d');tg.setBackgroundColor&&tg.setBackgroundColor('#07070d')}catch(e){}}
