@@ -262,7 +262,7 @@ function wsRoom(c){return new Promise(res=>{let ws;try{ws=new WebSocket(API.repl
  const pm=new Map(),ps=[];let mine;const snap=()=>[...pm.values()],fire=(j,l,u)=>ps.forEach(f=>f({peers:snap(),joined:j,left:l,updated:u}));
  const r={emit(){},on:()=>()=>{},peers:snap,onPeers:f=>(ps.push(f),()=>{}),presence:p=>{mine&&Object.assign(mine.presence,p);if(ws.readyState==1)ws.send(JSON.stringify(p));return Promise.resolve()},leave:()=>ws.close()};
  ws.onmessage=e=>{const m=JSON.parse(e.data);if(m.t=='hi'){mine={peer:m.id,isMe:true,presence:{}};pm.set(m.id,mine);res(r)}else if(m.t=='l'){const p=pm.get(m.f);pm.delete(m.f);p&&fire([],[p],[])}else if(m.t=='p'&&m.f!=(mine&&mine.peer)){let p=pm.get(m.f);const j=!p;if(!p){p={peer:m.f,isMe:false,presence:{}};pm.set(m.f,p)}Object.assign(p.presence,m.d);fire(j?[p]:[],[],j?[]:[p])}};
- ws.onerror=()=>res(null);setTimeout(()=>res(null),5000)})}
+ ws.onerror=()=>res(null);setTimeout(()=>res(null),25000)})}
 async function netOpen(c){if(API){try{await fetch(API+'/owned')}catch(e){}return wsRoom(c)};try{const cl=window.claude&&await claude.use('room');return cl?await cl.join('apex-'+c.toLowerCase()):null}catch(e){return null}}
 async function openRoom(c,h){code=c;host=h;$('os').textContent='Connecting…';net=await netOpen(c);if(!net){$('os').textContent=API?'Server offline':'Live rooms need your server (API) or a claude.ai viewer';return}
  net.presence({n:NAME,car:save.car,rd:1});net.onPeers(onPeers);lobbyShow()}
