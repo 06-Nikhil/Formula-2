@@ -1,7 +1,6 @@
-
 // Apex Rush backend: Telegram Stars + live rooms + Inline Mode
 // Install: npm install ws
-// Environment variables: BOT_TOKEN, PORT
+// Environment variables: BOT_TOKEN, PORT, WEBHOOK_SECRET (optional but recommended)
 
 const http = require('http');
 const fs = require('fs');
@@ -9,6 +8,7 @@ const crypto = require('crypto');
 const { WebSocketServer } = require('ws');
 
 const T = process.env.BOT_TOKEN;
+const WEBHOOK_SECRET = process.env.WEBHOOK_SECRET || '';
 const DB = 'owned.json';
 
 if (!T) throw new Error('BOT_TOKEN environment variable is missing');
@@ -54,10 +54,28 @@ function uid(init) {
 
 const srv = http.createServer(async (q, s) => {
   const u = new URL(q.url, 'http://x');
-  const id = uid(u.searchParams.get('init') || '');
 
   s.setHeader('access-control-allow-origin', '*');
+  s.setHeader('access-control-allow-methods', 'GET, POST, HEAD, OPTIONS');
+  s.setHeader('access-control-allow-headers', 'content-type');
   s.setHeader('content-type', 'application/json');
+
+  // CORS preflight
+  if (q.method === 'OPTIONS') {
+    s.statusCode = 204;
+    return s.end();
+  }
+
+  // HEALTH CHECK (for UptimeRobot / Render). Works for GET and HEAD.
+  if (
+    (q.method === 'GET' || q.method === 'HEAD') &&
+    (u.pathname === '/' || u.pathname === '/health' || u.pathname === '/ping')
+  ) {
+    s.statusCode = 200;
+    return s.end(JSON.stringify({ ok: true }));
+  }
+
+  const id = uid(u.searchParams.get('init') || '');
 
   try {
     if (u.pathname === '/invoice' && id && PRICE[u.searchParams.get('car')]) {
@@ -79,6 +97,15 @@ const srv = http.createServer(async (q, s) => {
     }
 
     if (u.pathname === '/tg' && q.method === 'POST') {
+      // Reject fake webhook calls (set the same secret in setWebhook)
+      if (
+        WEBHOOK_SECRET &&
+        q.headers['x-telegram-bot-api-secret-token'] !== WEBHOOK_SECRET
+      ) {
+        s.statusCode = 403;
+        return s.end('{}');
+      }
+
       let b = '';
       for await (const d of q) b += d;
 
@@ -133,7 +160,7 @@ const srv = http.createServer(async (q, s) => {
       if (pay) {
         const [i, c] = pay.invoice_payload.split(':');
         own[i] = own[i] || [];
-        own[i].push(c);
+        if (!own[i].includes(c)) own[i].push(c);
         fs.writeFileSync(DB, JSON.stringify(own));
       }
 
